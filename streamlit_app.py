@@ -1,59 +1,74 @@
 import streamlit as st
-import pandas as pd
+import time
+import random
 
-# Fungsi untuk melakukan data cleansing
-def compare_data(main_file, comparison_file, vlookup_key):
-    # Membaca file Excel
-    main_df = pd.read_excel(main_file)
-    comparison_df = pd.read_excel(comparison_file)
+# Game setup
+st.title("Flappy Bird Sederhana")
 
-    # Menampilkan preview dari kedua file
-    st.write("Preview Data Utama:")
-    st.write(main_df.head())
-    st.write("Preview Data Pembanding:")
-    st.write(comparison_df.head())
+# Variabel game
+bird_pos = 5  # Posisi burung
+bird_velocity = 0  # Kecepatan vertikal burung
+gravity = -1  # Gaya gravitasi
+jump_strength = 3  # Kekuatan lompatan burung
+pipe_pos = 10  # Posisi pipa pertama
+pipe_gap = 3  # Jarak kosong antara pipa
+pipe_width = 1  # Lebar pipa
+score = 0  # Skor permainan
+game_over = False  # Status permainan
 
-    # Memastikan kolom VLOOKUP key ada di kedua DataFrame
-    if vlookup_key not in main_df.columns or vlookup_key not in comparison_df.columns:
-        st.error(f"Key '{vlookup_key}' tidak ditemukan di salah satu file.")
-        return
-
-    # Membandingkan data berdasarkan key yang diberikan
-    comparison_result = main_df.merge(comparison_df, on=vlookup_key, how='outer', indicator=True)
-
-    # Menampilkan perbedaan
-    st.write("Perbandingan Data:")
-    st.write(comparison_result)
-
-    # Menampilkan data yang berbeda
-    st.write("Data yang ada di file utama tetapi tidak ada di file pembanding:")
-    st.write(comparison_result[comparison_result['_merge'] == 'left_only'])
-
-    st.write("Data yang ada di file pembanding tetapi tidak ada di file utama:")
-    st.write(comparison_result[comparison_result['_merge'] == 'right_only'])
-
-# Streamlit UI
-st.title("Data Cleansing dan Perbandingan Excel")
-
-# Mengunggah file Excel
-main_file = st.file_uploader("Unggah File Excel Utama", type=["xlsx"])
-comparison_file = st.file_uploader("Unggah File Excel Pembanding", type=["xlsx"])
-
-if main_file and comparison_file:
-    # Membaca file untuk menampilkan kolom-kolom
-    main_df = pd.read_excel(main_file)
-    comparison_df = pd.read_excel(comparison_file)
+# Fungsi untuk menampilkan area permainan
+def display_game(bird_pos, pipe_pos, score, game_over):
+    game_area = [' '] * 10
+    # Menambahkan burung (B) dan pipa (|) ke area permainan
+    if bird_pos < len(game_area):
+        game_area[bird_pos] = 'B'  # B untuk burung
+    for i in range(pipe_pos, pipe_pos + pipe_width):
+        if i < len(game_area):
+            game_area[i] = '|'
+    game_str = ''.join(game_area)
     
-    # Menampilkan kolom-kolom untuk file utama dan pembanding
-    st.write("Kolom-kolom di File Utama:")
-    st.write(main_df.columns.tolist())
+    st.write(game_str)  # Menampilkan area permainan
+    st.write(f"Skor: {score}")
+    if game_over:
+        st.write("Game Over!")
+        
+# Fungsi untuk menggerakkan pipa
+def move_pipe(pipe_pos):
+    return pipe_pos - 1 if pipe_pos > 0 else 10
 
-    st.write("Kolom-kolom di File Pembanding:")
-    st.write(comparison_df.columns.tolist())
+# Fungsi untuk menggerakkan burung
+def move_bird(bird_pos, bird_velocity):
+    bird_pos += bird_velocity
+    bird_velocity += gravity  # Menerapkan gravitasi
+    # Membatasi burung agar tidak keluar dari batas
+    if bird_pos < 0:
+        bird_pos = 0
+    if bird_pos >= 10:
+        bird_pos = 9
+    return bird_pos, bird_velocity
+
+# Aksi lompat (up)
+def jump(bird_velocity):
+    return jump_strength
+
+# Streamlit interactivity
+if not game_over:
+    # Input pengguna (klik untuk melompat)
+    if st.button("Lompat (Klik untuk Lompat)"):
+        bird_velocity = jump(bird_velocity)
+
+    # Menggerakkan burung dan pipa
+    bird_pos, bird_velocity = move_bird(bird_pos, bird_velocity)
+    pipe_pos = move_pipe(pipe_pos)
     
-    # Memilih VLOOKUP key dari kolom yang tersedia
-    vlookup_key = st.selectbox("Pilih Key untuk Perbandingan (VLOOKUP Key)", main_df.columns.tolist())
+    # Mengecek tabrakan burung dengan pipa
+    if pipe_pos == 0 and bird_pos in range(0, pipe_gap):
+        game_over = True
+    elif pipe_pos == 0 and bird_pos not in range(0, pipe_gap):
+        score += 1  # Menambah skor jika melewati pipa
     
-    # Mengunggah file dan memilih key sudah dilakukan
-    if vlookup_key:
-        compare_data(main_file, comparison_file, vlookup_key)
+    # Menampilkan game
+    display_game(bird_pos, pipe_pos, score, game_over)
+    
+    # Memberikan waktu agar pengguna bisa melihat perubahan
+    time.sleep(0.2)
