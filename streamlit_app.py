@@ -39,8 +39,21 @@ st.title("Data Cleansing dan Perbandingan Excel")
 main_file = st.file_uploader("Unggah File Excel Utama", type=["xlsx"])
 comparison_file = st.file_uploader("Unggah File Excel Pembanding", type=["xlsx"])
 
-# Input key untuk VLOOKUP
-vlookup_key = st.text_input("Masukkan Key untuk Perbandingan (VLOOKUP Key)", "")
+if main_file and comparison_file:
+    # Membaca file untuk menampilkan kolom-kolom
+    main_df = pd.read_excel(main_file)
+    comparison_df = pd.read_excel(comparison_file)
+    
+    # Menampilkan kolom-kolom untuk file utama dan pembanding
+    st.write("Kolom-kolom di File Utama:")
+    st.write(main_df.columns.tolist())
 
-if main_file and comparison_file and vlookup_key:
-    compare_data(main_file, comparison_file, vlookup_key)
+    st.write("Kolom-kolom di File Pembanding:")
+    st.write(comparison_df.columns.tolist())
+    
+    # Memilih VLOOKUP key dari kolom yang tersedia
+    vlookup_key = st.selectbox("Pilih Key untuk Perbandingan (VLOOKUP Key)", main_df.columns.tolist())
+    
+    # Mengunggah file dan memilih key sudah dilakukan
+    if vlookup_key:
+        compare_data(main_file, comparison_file, vlookup_key)
