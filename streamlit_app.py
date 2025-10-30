@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-st.title("Ekstraksi Kode Titik ke Kolom")
+st.title("Ekstraksi Kode Titik ke Kolom (Format Aman untuk Excel)")
 
 input_text = st.text_area("Masukkan kode di sini:", height=300)
 
@@ -10,8 +10,8 @@ if st.button("Ekstrak"):
         # Pisahkan per baris dan hilangkan baris kosong
         lines = [line.strip() for line in input_text.splitlines() if line.strip()]
 
-        # Pisahkan berdasarkan titik
-        data = [line.split('.') for line in lines]
+        # Pisahkan berdasarkan titik dan tambahkan tanda ' di depan biar aman di Excel
+        data = [[f"'{part}" for part in line.split('.')] for line in lines]
 
         # Buat nama kolom otomatis
         max_cols = max(len(row) for row in data)
