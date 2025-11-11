@@ -1,24 +1,64 @@
 import streamlit as st
 import pandas as pd
+from io import BytesIO
 
-st.title("Ekstraksi Kode Titik ke Kolom (Format Aman untuk Excel)")
+st.title("📘 Penggabung Multi File Excel Berdasarkan Sheet (Fleksibel)")
 
-input_text = st.text_area("Masukkan kode di sini:", height=300)
+st.write("""
+Unggah **3 file Excel atau lebih**, lalu pilih **sheet dari masing-masing file**
+yang ingin digabungkan. Semua data akan digabung jadi satu file Excel.
+""")
 
-if st.button("Ekstrak"):
-    if input_text.strip():
-        # Pisahkan per baris dan hilangkan baris kosong
-        lines = [line.strip() for line in input_text.splitlines() if line.strip()]
+# Upload multiple Excel files
+uploaded_files = st.file_uploader(
+    "Unggah File Excel (minimal 3)", 
+    type=["xlsx"], 
+    accept_multiple_files=True
+)
 
-        # Pisahkan berdasarkan titik dan tambahkan tanda ' di depan biar aman di Excel
-        data = [[f"'{part}" for part in line.split('.')] for line in lines]
+if uploaded_files and len(uploaded_files) >= 3:
+    selected_sheets = {}
 
-        # Buat nama kolom otomatis
-        max_cols = max(len(row) for row in data)
-        columns = [f"col{i+1}" for i in range(max_cols)]
+    # Tampilkan opsi sheet untuk tiap file
+    st.write("### Pilih Sheet dari Tiap File")
+    for file in uploaded_files:
+        xls = pd.ExcelFile(file)
+        sheet = st.selectbox(
+            f"Pilih sheet dari: **{file.name}**", 
+            xls.sheet_names,
+            key=file.name
+        )
+        selected_sheets[file.name] = (file, sheet)
 
-        # Buat DataFrame dan tampilkan
-        df = pd.DataFrame(data, columns=columns)
-        st.dataframe(df, use_container_width=True)
-    else:
-        st.warning("Masukkan teks terlebih dahulu!")
+    # Tombol gabungkan
+    if st.button("Gabungkan Semua Sheet Terpilih"):
+        combined_data = []
+        for filename, (file, sheetname) in selected_sheets.items():
+            try:
+                df = pd.read_excel(file, sheet_name=sheetname)
+                df["Sumber_File"] = filename
+                df["Sheet_Asal"] = sheetname
+                combined_data.append(df)
+            except Exception as e:
+                st.warning(f"⚠️ Gagal membaca sheet '{sheetname}' dari file {filename}: {e}")
+
+        if combined_data:
+            result = pd.concat(combined_data, ignore_index=True)
+            st.success(f"✅ Berhasil menggabungkan {len(combined_data)} sheet!")
+            st.dataframe(result)
+
+            # Simpan hasil ke buffer agar bisa diunduh
+            buffer = BytesIO()
+            result.to_excel(buffer, index=False)
+            buffer.seek(0)
+
+            st.download_button(
+                label="⬇️ Unduh Hasil Gabungan",
+                data=buffer,
+                file_name="hasil_gabungan_semua_sheet.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+        else:
+            st.error("Tidak ada data yang berhasil digabung. Periksa pilihan sheet.")
+else:
+    st.info("Silakan unggah minimal 3 file Excel terlebih dahulu.")
