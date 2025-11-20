@@ -11,8 +11,8 @@ st.set_page_config(
     layout="wide",
 )
 
-st.title("📦 Dashboard Open Transfer Order PROD ➜ FG")
-st.caption("Sumber: File CSV Open Transfer Order PROD to FG")
+st.title("📦 Dashboard Open Transfer Order SEKAR LAUT")
+st.caption("Sumber: Report SKLT INV Transfer Order")
 
 # --------------------------------------
 # FUNGSI BACA CSV
