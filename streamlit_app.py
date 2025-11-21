@@ -1,4 +1,4 @@
-import io  # ⬅️ tambahkan ini
+import io
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -7,6 +7,14 @@ from pathlib import Path
 # --------------------------------------
 # KONFIGURASI HALAMAN
 # --------------------------------------
+st.set_page_config(
+    page_title="Dashboard Open Transfer Order (CSV)",
+    layout="wide",
+)
+
+st.title("📦 Dashboard Open Transfer Order PROD ➜ FG")
+st.caption("Sumber: File CSV Open Transfer Order PROD to FG")
+
 # --------------------------------------
 # FUNGSI BACA CSV
 # --------------------------------------
@@ -39,6 +47,16 @@ def load_data(file_or_path) -> pd.DataFrame:
     Bisa menerima path (string/Path) atau UploadedFile.
     """
     df = _read_csv_flexible(file_or_path)
+
+    # 🔹 BERSIHKAN NAMA KOLOM
+    # - strip spasi kiri/kanan
+    # - hilangkan BOM (\ufeff) pada kolom pertama
+    df.columns = (
+        df.columns
+        .astype(str)
+        .str.strip()
+        .str.replace("\ufeff", "", regex=False)
+    )
 
     # Konversi tanggal
     if "Report Date" in df.columns:
@@ -74,6 +92,8 @@ def load_data(file_or_path) -> pd.DataFrame:
     )
 
     return df
+
+
 # --------------------------------------
 # INPUT FILE
 # --------------------------------------
@@ -106,6 +126,14 @@ uom_col = "Item Primary Unit of Measure"
 item_col = "Item"
 status_col = "Transfer Order Line Status"
 to_number_col = "Transfer Order Number"
+
+# (opsional: cek cepat kalau kolom penting nggak ada)
+required_cols = [to_number_col, dest_col, source_col, uom_col, item_col]
+missing = [c for c in required_cols if c not in df.columns]
+if missing:
+    st.error(f"Kolom berikut tidak ditemukan di CSV: {missing}\n"
+             f"Kolom yang ada: {list(df.columns)}")
+    st.stop()
 
 # --------------------------------------
 # SIDEBAR - FILTER
