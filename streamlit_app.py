@@ -1,3 +1,4 @@
+import io  # ⬅️ tambahkan ini
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -6,27 +7,29 @@ from pathlib import Path
 # --------------------------------------
 # KONFIGURASI HALAMAN
 # --------------------------------------
-st.set_page_config(
-    page_title="Dashboard Open Transfer Order (CSV)",
-    layout="wide",
-)
-
-st.title("📦 Dashboard Open Transfer Order PROD ➜ FG")
-st.caption("Sumber: File CSV Open Transfer Order PROD to FG")
-
 # --------------------------------------
 # FUNGSI BACA CSV
 # --------------------------------------
 def _read_csv_flexible(file_or_buffer) -> pd.DataFrame:
     """
-    Coba baca CSV dengan delimiter koma dulu,
-    kalau error baru pakai delimiter semicolon (;).
+    Baca CSV dengan auto-detect delimiter.
+    - Kalau input dari Streamlit (UploadedFile), gunakan getvalue()
+      lalu bungkus ke StringIO supaya bisa dibaca dengan aman.
+    - Kalau input berupa path (string/Path), langsung pakai read_csv.
     """
-    try:
-        df = pd.read_csv(file_or_buffer)
-    except Exception:
-        df = pd.read_csv(file_or_buffer, sep=";")
-    return df
+    # Kalau path (string / Path)
+    if isinstance(file_or_buffer, (str, Path)):
+        return pd.read_csv(file_or_buffer, sep=None, engine="python")
+
+    # Kalau dari Streamlit uploader (UploadedFile)
+    if hasattr(file_or_buffer, "getvalue"):
+        bytes_data = file_or_buffer.getvalue()
+        text = bytes_data.decode("utf-8", errors="ignore")
+        buffer = io.StringIO(text)
+        return pd.read_csv(buffer, sep=None, engine="python")
+
+    # Fallback: file-like object lain
+    return pd.read_csv(file_or_buffer, sep=None, engine="python")
 
 
 @st.cache_data
@@ -36,9 +39,6 @@ def load_data(file_or_path) -> pd.DataFrame:
     Bisa menerima path (string/Path) atau UploadedFile.
     """
     df = _read_csv_flexible(file_or_path)
-
-    # Nama kolom yang dipakai di app ini diambil dari struktur file kamu
-    # Kalau di CSV beda tipis, bisa di-rename di sini.
 
     # Konversi tanggal
     if "Report Date" in df.columns:
@@ -74,8 +74,6 @@ def load_data(file_or_path) -> pd.DataFrame:
     )
 
     return df
-
-
 # --------------------------------------
 # INPUT FILE
 # --------------------------------------
